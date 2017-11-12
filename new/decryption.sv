@@ -3,18 +3,28 @@
 //order in array		0,5,2,6,7,4,3,1
 //order in decode		3,4,6,2,1,5,0,7
 //xor first then permutation
+
+//add shift cipher
+//direction 10 shift right 
+//direction 01 shift left
+//direction 00 don't shift 
+//shift_num
+
 module decryption 
 #(parameter N = 8)
 (
     input logic clock    ,
     input logic rst,
 	input logic en,
+	input logic[1:0]	direction;
+	input logic[4:0]	shift_num;
 	input logic [N-1:0] din,
     output logic [N-1:0] dout,
 	output logic v
 );
 
 logic[N-1:0]	shift_de_val;
+logic[N-1:0]	cipher_de_val;
 logic[N-1:0]	xor_de_val;
 logic[1:0]		xor_cnt;
 
@@ -23,14 +33,17 @@ parameter K2 = 8'b0100_1001;
 parameter K3 = 8'b0111_1110;
 
 parameter CNT_MAX = 3;
-
+assign shift_num = shift_num MOD 26;
 //signal dout 8 bit
 always_ff  @(posedge clock or negedge rst)begin
     if(rst==1'b0)begin
 		dout	<=	8'b0;
     end
     else begin
-		dout	<= shift_de_val;
+		if(en == 1'b1)	
+			dout	<= 	cipher_de_val;
+		else
+			dout	<=	dout;
     end
 end
 
@@ -106,6 +119,45 @@ always_ff  @(posedge clock or negedge rst)begin
 		end
 		else 
 			shift_de_val <= xor_de_val;
+    end
+end
+//reg cipher_de_val 8 bit
+always_ff  @(posedge clock or negedge rst)begin
+    if(rst==1'b0)begin
+    	cipher_val <= 'b0;
+	end
+    else begin
+		if(en == 1'b1)
+		begin
+			if(direction == 2'b00)
+				cipher_val <= din;
+			else if(direction == 2'b10)//de left shift
+			begin
+				if(din >= UP_A && din <= UP_Z)
+				begin
+					cipher_val <= ((din-shift_num) >= UP_A)? din-shift_num : UP_Z - (UP_A-(din-shift_num)-1);
+				end
+				if(din >= LOW_A && din <= LOW_Z)
+				begin 
+					cipher_val <= ((din-shift_num) >= LOW_A)? din-shift_num : LOW_Z - (UP_A-(din-shift_num)-1);
+				end
+			end
+			else if(direction == 2'b01)//de right shift
+			begin
+				if(din >= UP_A && din <= UP_Z)
+				begin
+					cipher_val <= ((din+shift_num) <= UP_Z)? din+shift_num : UP_A + (din+shift_num-UP_Z -1);
+				end
+				if(din >= LOW_A && din <= LOW_Z)
+				begin 
+					cipher_val <= ((din+shift_num) <= LOW_Z)? din+shift_num : LOW_A + (din+shift_num-LOW_Z -1);
+				end
+			end
+			else
+				cipher_val <= din;
+		end
+		else
+			cipher_val <= cipher_val;
     end
 end
 

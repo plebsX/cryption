@@ -3,34 +3,53 @@
 //order in array		0,5,2,6,7,4,3,1
 //order in decode		3,4,6,2,1,5,0,7
 //permutation first then xor
+
+//add shift cipher
+//direction 10 shift right 
+//direction 01 shift left
+//direction 00 don't shift 
+//shift_num
+
 module encryption 
 #(parameter N = 8)
 (
     input logic clock,
     input logic rst,
 	input logic en,
+	input logic[1:0] 	direction,
+	input logic[4:0]	shift_num,
 	input logic[N-1:0] 	din,
     output logic[N-1:0] dout,
 	output logic		v
 );
 
 logic[N-1:0] 	shift_val;
+logic[N-1:0]	cipher_val;
 logic[N-1:0]	xor_val;
 logic[1:0]		xor_cnt;
 
 parameter K1 = 8'b0011_1110;
 parameter K2 = 8'b0100_1001;
 parameter K3 = 8'b0111_1110;
+parameter UP_A = 8'b0100_0001;
+parameter UP_Z = 8'b0101_1010;
+parameter LOW_A	= 8'b0110_0001;
+parameter LOW_Z = 8'b0111_1010; 
 
 parameter CNT_MAX = 3;
 
+assign	shift_num = shift_num MOD 26;
+ 
 //signal dout 8 bit
 always_ff  @(posedge clock or negedge rst)begin
     if(rst==1'b0)begin
 		dout	<= 	8'b0;
     end
     else begin
-		dout <= xor_val;
+		if(en == 1'b1)
+			dout <= xor_val;
+		else
+			dout <= dout;
     end
 end
 
@@ -48,6 +67,45 @@ always_ff  @(posedge clock or negedge rst)begin
 			v <= 1'b0;
     end
 end
+//reg cipher_val 8 bit
+always_ff  @(posedge clock or negedge rst)begin
+    if(rst==1'b0)begin
+    	cipher_val <= 'b0;
+	end
+    else begin
+		if(en == 1'b1)
+		begin
+			if(direction == 2'b00)
+				cipher_val <= din;
+			else if(direction == 2'b01)//left shift
+			begin
+				if(din >= UP_A && din <= UP_Z)
+				begin
+					cipher_val <= ((din-shift_num) >= UP_A)? din-shift_num : UP_Z - (UP_A-(din-shift_num)-1);
+				end
+				if(din >= LOW_A && din <= LOW_Z)
+				begin 
+					cipher_val <= ((din-shift_num) >= LOW_A)? din-shift_num : LOW_Z - (UP_A-(din-shift_num)-1);
+				end
+			end
+			else if(direction == 2'b10)//right shift
+			begin
+				if(din >= UP_A && din <= UP_Z)
+				begin
+					cipher_val <= ((din+shift_num) <= UP_Z)? din+shift_num : UP_A + (din+shift_num-UP_Z -1);
+				end
+				if(din >= LOW_A && din <= LOW_Z)
+				begin 
+					cipher_val <= ((din+shift_num) <= LOW_Z)? din+shift_num : LOW_A + (din+shift_num-LOW_Z -1);
+				end
+			end
+			else
+				cipher_val <= din;
+		end
+		else
+			cipher_val <= cipher_val;
+    end
+end
 
 //reg shift_val 8 bit
 always_ff  @(posedge clock or negedge rst)begin
@@ -57,9 +115,11 @@ always_ff  @(posedge clock or negedge rst)begin
     else begin
 		if(en == 1'b1 )
 		begin
-			shift_val <= 	{din_ff1[0],din_ff1[5],din_ff1[2],
-							din_ff1[6],din_ff1[7],din_ff1[4],
-							din_ff1[3],din_ff1[1]}; 
+			shift_val <= 	{
+								cipher_val[0],cipher_val[5],cipher_val[2],
+								cipher_val[6],cipher_val[7],cipher_val[4],
+								cipher_val[3],cipher_val[1]
+							}; 
 		end
 		else
 			shift_val <= shift_val;
