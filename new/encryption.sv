@@ -17,7 +17,7 @@ module encryption
     input logic rst,
 	input logic en,
 	input logic[1:0] 	direction,
-	input logic[4:0]	shift_num,
+	input logic[4:0]	shift,
 	input logic[N-1:0] 	din,
     output logic[N-1:0] dout,
 	output logic		v
@@ -27,7 +27,7 @@ logic[N-1:0] 	shift_val;
 logic[N-1:0]	cipher_val;
 logic[N-1:0]	xor_val;
 logic[1:0]		xor_cnt;
-
+logic[4:0]		shift_num;
 parameter K1 = 8'b0011_1110;
 parameter K2 = 8'b0100_1001;
 parameter K3 = 8'b0111_1110;
@@ -38,7 +38,10 @@ parameter LOW_Z = 8'b0111_1010;
 
 parameter CNT_MAX = 3;
 
-assign	shift_num = shift_num MOD 26;
+always_comb
+begin
+	shift_num = shift % 26;
+end
  
 //signal dout 8 bit
 always_ff  @(posedge clock or negedge rst)begin
@@ -155,16 +158,17 @@ always_ff  @(posedge clock or negedge rst)begin
 		begin
 			unique case (xor_cnt)
 				0:begin
-					xor_val <= xor_val ^ K1;	
+					xor_val <= shift_val^ K1;	
 				end
 
 				1:begin
-					xor_val <= xor_val ^ K2;
+					xor_val <= shift_val^ K2;
 				end
 				
-				2:being
-					xor_val <= xor_val ^ K3;
+				2:begin
+					xor_val <= shift_val^ K3;
 				end
+			endcase
 		end
 		else
 			xor_val <= xor_val;

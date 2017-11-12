@@ -16,8 +16,8 @@ module decryption
     input logic clock    ,
     input logic rst,
 	input logic en,
-	input logic[1:0]	direction;
-	input logic[4:0]	shift_num;
+	input logic[1:0]	direction,
+	input logic[4:0]	shift,
 	input logic [N-1:0] din,
     output logic [N-1:0] dout,
 	output logic v
@@ -27,13 +27,43 @@ logic[N-1:0]	shift_de_val;
 logic[N-1:0]	cipher_de_val;
 logic[N-1:0]	xor_de_val;
 logic[1:0]		xor_cnt;
+logic[4:0]		shift_num;
 
+logic[N-1:0]	din_ff0;
+logic[N-1:0]	din_ff1;
 parameter K1 = 8'b0011_1110;
 parameter K2 = 8'b0100_1001;
 parameter K3 = 8'b0111_1110;
+parameter UP_A = 8'b0100_0001;
+parameter UP_Z = 8'b0101_1010;
+parameter LOW_A	= 8'b0110_0001;
+parameter LOW_Z = 8'b0111_1010; 
 
 parameter CNT_MAX = 3;
-assign shift_num = shift_num MOD 26;
+
+always_comb
+begin
+	shift_num = shift %26;
+end
+//reg din_ff0
+always_ff  @(posedge clock or negedge rst)begin
+    if(rst==1'b0)begin
+		din_ff0 <= 'b0;
+    end
+    else begin
+		din_ff0 <= din;
+    end
+end
+//reg din_ff1
+always_ff  @(posedge clock or negedge rst)begin
+    if(rst==1'b0)begin
+		din_ff1 <= 'b0;
+    end
+    else begin
+		din_ff1 <= din_ff0;
+    end
+end
+
 //signal dout 8 bit
 always_ff  @(posedge clock or negedge rst)begin
     if(rst==1'b0)begin
@@ -91,17 +121,18 @@ always_ff  @(posedge clock or negedge rst)begin
 		begin
 			unique case(xor_cnt)
 				0:begin
-					xor_de_val <= K1^din;
+					xor_de_val <= K1^din_ff1;
 				end
 				1:begin
-					xor_de_val <= K2^din;
+					xor_de_val <= K2^din_ff1;
 				end
 				2:begin
-					xor_de_val <= K3^din;
+					xor_de_val <= K3^din_ff1;
 				end
+			endcase
 		end
 		else 
-			xor_de_val <= din;
+			xor_de_val <= din_ff1;
     end
 end
 
@@ -124,40 +155,41 @@ end
 //reg cipher_de_val 8 bit
 always_ff  @(posedge clock or negedge rst)begin
     if(rst==1'b0)begin
-    	cipher_val <= 'b0;
+    	cipher_de_val <= 'b0;
 	end
     else begin
 		if(en == 1'b1)
 		begin
+
 			if(direction == 2'b00)
-				cipher_val <= din;
+				cipher_de_val <= shift_de_val ;
 			else if(direction == 2'b10)//de left shift
 			begin
-				if(din >= UP_A && din <= UP_Z)
+				if(shift_de_val >= UP_A && shift_de_val <= UP_Z)
 				begin
-					cipher_val <= ((din-shift_num) >= UP_A)? din-shift_num : UP_Z - (UP_A-(din-shift_num)-1);
+					cipher_de_val <= ((shift_de_val -shift_num) >= UP_A)? shift_de_val -shift_num : UP_Z - (UP_A-(shift_de_val -shift_num)-1);
 				end
-				if(din >= LOW_A && din <= LOW_Z)
+				if(shift_de_val >= LOW_A && shift_de_val <= LOW_Z)
 				begin 
-					cipher_val <= ((din-shift_num) >= LOW_A)? din-shift_num : LOW_Z - (UP_A-(din-shift_num)-1);
+					cipher_de_val <= ((shift_de_val -shift_num) >= LOW_A)? shift_de_val -shift_num : LOW_Z - (UP_A-(shift_de_val -shift_num)-1);
 				end
 			end
 			else if(direction == 2'b01)//de right shift
 			begin
-				if(din >= UP_A && din <= UP_Z)
+				if(shift_de_val >= UP_A && shift_de_val <= UP_Z)
 				begin
-					cipher_val <= ((din+shift_num) <= UP_Z)? din+shift_num : UP_A + (din+shift_num-UP_Z -1);
+					cipher_de_val <= ((shift_de_val +shift_num) <= UP_Z)? shift_de_val +shift_num : UP_A + (shift_de_val +shift_num-UP_Z -1);
 				end
-				if(din >= LOW_A && din <= LOW_Z)
+				if(shift_de_val >= LOW_A && shift_de_val <= LOW_Z)
 				begin 
-					cipher_val <= ((din+shift_num) <= LOW_Z)? din+shift_num : LOW_A + (din+shift_num-LOW_Z -1);
+					cipher_de_val <= ((shift_de_val +shift_num) <= LOW_Z)? shift_de_val +shift_num : LOW_A + (shift_de_val +shift_num-LOW_Z -1);
 				end
 			end
 			else
-				cipher_val <= din;
+				cipher_de_val <= shift_de_val ;
 		end
 		else
-			cipher_val <= cipher_val;
+			cipher_de_val <= cipher_de_val;
     end
 end
 

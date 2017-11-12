@@ -9,7 +9,7 @@ logic rst;
 logic en;
 logic [N-1:0] 	din;
 logic [N-1:0]	dout;
-logic [4:0]		shift_num;
+logic [4:0]		shift;
 logic [1:0]		direction;	
 logic v;
 
@@ -62,32 +62,32 @@ end
 
 initial begin
 	#1;
-	shift_num = 'b01;
+	shift = 'b01;
 	#(10*CYCLE);
-	shift_num = 5;
+	shift = 5;
 	#(10*CYCLE);
-	shift_num = 10;
+	shift = 10;
 	#(10*CYCLE);
-	shift_num = 15;
+	shift = 15;
 	#(10*CYCLE);
-	shift_num = 20;
+	shift = 20;
 	#(10*CYCLE);
-	shift_num = 25;
+	shift = 25;
 	#(10*CYCLE);
-	shift_num = 26;
+	shift = 26;
 	
 	#(10*CYCLE);
-	shift_num = 5;
+	shift = 5;
 	#(10*CYCLE);
-	shift_num = 10;
+	shift = 10;
 	#(10*CYCLE);
-	shift_num = 15;
+	shift = 15;
 	#(10*CYCLE);
-	shift_num = 20;
+	shift = 20;
 	#(10*CYCLE);
-	shift_num = 25;
+	shift = 25;
 	#(10*CYCLE);
-	shift_num = 26;
+	shift = 26;
 end
 
 endmodule
